@@ -37,13 +37,16 @@ Device activity and participant confirmations retain separate sources and timest
 
 ## Run locally
 
-Node.js **22+** provides the runtime. The app uses native JavaScript and Node HTTP APIs, with zero package dependencies.
+Node.js **22+** provides the runtime. The app uses native JavaScript and Node HTTP APIs, plus the independently released [Ring View Bridge](https://github.com/blucca/ring-view-bridge) for live-view transport and lifecycle.
 
 ```sh
 git clone https://github.com/blucca/care-handoff.git
 cd care-handoff
+npm ci
 npm start
 ```
+
+With npm 12+, run `npm ci --allow-remote=root` to allow the direct GitHub Release dependency.
 
 Open **http://127.0.0.1:4319/**. This serves the shared local-server example. Each browser tab can act as a different example participant. `/index.html` opens the browser-local version, which uses localStorage and cross-tab synchronization.
 
@@ -81,14 +84,18 @@ npm start
 ```text
 web/domain.mjs   Pure visit state machine, versioned commands, device-event ingestion
 web/app.mjs      Browser-local and local-server UI, roles, refresh and cross-tab recovery
-web/ring-live.mjs  Receive-only WebRTC view, playback report, and session cleanup
+web/ring-live.mjs  Visit-dialog UI and first-frame logging via Ring View Bridge
+web/vendor/      Browser module generated from the installed Ring View Bridge release
 web/trial.mjs    Personal-link trial setup, invitations, and optional feedback
 web/try/        Stable public entry and current preview-service routing
 src/server.mjs   Local HTTP service, optional state file, server-sent updates
 src/trial-server.mjs  Isolated shared-trial service, member credentials, expiry, polling
 src/ring.mjs     Official Ring REST client, normalization, webhook HMAC verification
+scripts/        Reproducible browser vendor step from the versioned package
 test/           Focused domain and HTTP-contract checks
 ```
+
+Ring View Bridge **0.1.1** is installed from its public GitHub Release and pinned by package-lock integrity. `npm ci` regenerates the checked-in browser module through `scripts/vendor-ring-view-bridge.mjs`. The Node transport and bounded pool use the same package. [Independent contribution and released-package run](docs/ring-view-bridge.md).
 
 The same domain functions drive both run modes. Incoming Ring events carry their original event time plus reception time. Every human mutation supplies the current revision; a stale action receives the latest visit for review. A handoff request leaves the owner in place until its named recipient accepts.
 

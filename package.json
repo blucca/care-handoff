@@ -1,16 +1,21 @@
 {
   "name": "care-handoff",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Clear ownership and completion receipts for scheduled care visits, with Ring device context.",
   "scripts": {
     "start": "node src/server.mjs",
     "test": "node --test test/*.test.mjs",
-    "trial": "node src/trial-server.mjs"
+    "trial": "node src/trial-server.mjs",
+    "vendor:bridge": "node scripts/vendor-ring-view-bridge.mjs",
+    "postinstall": "npm run vendor:bridge"
   },
   "engines": {
     "node": ">=22"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@blucca/ring-view-bridge": "https://github.com/blucca/ring-view-bridge/releases/download/v0.1.1/blucca-ring-view-bridge-0.1.1.tgz"
+  }
 }

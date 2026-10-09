@@ -1,10 +1,10 @@
 import {createServer} from 'node:http';
-import {randomUUID} from 'node:crypto';
 import {readFileSync, writeFileSync, renameSync, mkdirSync, existsSync} from 'node:fs';
 import {dirname, resolve, extname, sep} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createDemoState, applyCommand, deriveView, ingestRingEvents, runDemoAction} from '../web/domain.mjs';
 import {RingClient, normalizeRingEvents, verifyWebhook} from './ring.mjs';
+import {RingWhepClient, LiveSessionPool, assertSameOrigin} from '@blucca/ring-view-bridge/node';
 
 const WEB = fileURLToPath(new URL('../web/', import.meta.url));
 const MIME = {'.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
@@ -23,16 +23,28 @@ export function createCareServer({env = process.env, initialState} = {}) {
     : createDemoState(configured() ? {now: new Date().toISOString()} : {}));
   if (state.schema !== 'care-handoff/1') throw new Error('Choose a care-handoff/1 state file.');
   const clients = new Set();
-  const liveSessions = new Map();
   const liveLogFile = stateFile ? `${stateFile}.live-view.json` : null;
   let liveLog = liveLogFile && existsSync(liveLogFile) ? JSON.parse(readFileSync(liveLogFile, 'utf8')) : [];
+  const liveSessions = new LiveSessionPool({
+    client: new RingWhepClient({getAccessToken: readToken}),
+    onEvent: event => {
+      if (event.type === 'started') {
+        recordLiveView(event.sessionId, {source, deviceId: event.deviceId, startedAt: event.startedAt,
+          expiresAt: event.expiresAt, playbackStartedAt: null, endedAt: null});
+      } else {
+        recordLiveView(event.sessionId, {endedAt: event.closedAt || new Date().toISOString(),
+          endReason: event.reason, closeStatus: event.type === 'closed' ? 'closed' : 'close_failed',
+          ...(event.error ? {error: event.error} : {})});
+      }
+    },
+  });
   let closing = false;
   let syncInfo = {lastSync: null, error: null};
   const envelope = () => {
     const visibleState = state.mode === 'example' ? state : {...state, clock: new Date().toISOString()};
     return {state: visibleState, view: deriveView(visibleState), ring: {
       mode: configured() ? source : 'example', configured: configured(), ...syncInfo,
-      liveView: {activeSessions: liveSessions.size, lastSession: liveLog.at(-1) || null},
+      liveView: {activeSessions: liveSessions.activeCount, lastSession: liveLog.at(-1) || null},
     }};
   };
   const broadcast = () => {
@@ -61,25 +73,7 @@ export function createCareServer({env = process.env, initialState} = {}) {
     }
     broadcast();
   }
-  async function endLiveSession(sessionId, reason) {
-    const session = liveSessions.get(sessionId);
-    if (!session) return {closed: true, sessionId};
-    if (!session.sessionUrl && session.ready) {
-      await session.ready;
-      return endLiveSession(sessionId, reason);
-    }
-    liveSessions.delete(sessionId);
-    clearTimeout(session.timer);
-    try {
-      await session.client.closeLiveSession(session.deviceId, session.sessionUrl);
-      recordLiveView(sessionId, {endedAt: new Date().toISOString(), endReason: reason, closeStatus: 'closed'});
-      return {closed: true, sessionId};
-    } catch (error) {
-      recordLiveView(sessionId, {endedAt: new Date().toISOString(), endReason: reason, closeStatus: 'close_failed',
-        error: {code: error.code || 'ring_network', message: error.message}});
-      throw error;
-    }
-  }
+  const endLiveSession = (sessionId, reason) => liveSessions.close(sessionId, reason);
   function json(res, status, data) {
     res.writeHead(status, {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'});
     res.end(JSON.stringify(data));
@@ -95,12 +89,7 @@ export function createCareServer({env = process.env, initialState} = {}) {
     return Buffer.concat(chunks);
   }
   function checkLocalRequest(req) {
-    const origin = req.headers.origin;
-    const expected = env.CARE_HANDOFF_ORIGIN || `http://${req.headers.host}`;
-    if (origin && origin !== expected)
-      throw Object.assign(new Error('Use the app’s own origin for this action.'), {code: 'origin'});
-    if (!(req.headers['content-type'] || '').startsWith('application/json'))
-      throw Object.assign(new Error('Send application/json.'), {code: 'content_type'});
+    assertSameOrigin(req, env.CARE_HANDOFF_ORIGIN || `http://${req.headers.host}`);
   }
   const server = createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -140,27 +129,10 @@ export function createCareServer({env = process.env, initialState} = {}) {
           if (closing) return json(res, 503, {error: {code: 'closing', message: 'The local server is stopping.'}});
           if (state.device.source !== source)
             return json(res, 409, {error: {code: 'ring_sync_required', message: 'Sync Ring to select the connected device before opening live view.'}});
-          if (liveSessions.size >= 2)
-            return json(res, 429, {error: {code: 'ring_session_limit', message: 'Close an active view before opening another stream.'}});
-          const sessionId = randomUUID();
-          const client = new RingClient({accessToken: readToken()});
           const device = {id: state.device.id, name: state.device.name};
-          // Reserve a slot while the upstream WHEP request is in flight.
-          const ready = client.startLiveSession(device.id, input.offer);
-          liveSessions.set(sessionId, {client, deviceId: device.id, sessionUrl: null, timer: null, ready});
-          let result;
-          try { result = await ready; }
-          catch (error) {liveSessions.delete(sessionId); throw error;}
-          const startedAt = new Date().toISOString();
-          const timer = setTimeout(() => endLiveSession(sessionId, 'duration_limit').catch(() => {}), 60_000);
-          timer.unref();
-          liveSessions.set(sessionId, {client, deviceId: device.id, sessionUrl: result.sessionUrl, timer});
-          recordLiveView(sessionId, {source, deviceId: device.id, startedAt, playbackStartedAt: null, endedAt: null});
-          if (closing) {
-            await endLiveSession(sessionId, 'server_shutdown');
-            return json(res, 503, {error: {code: 'closing', message: 'The local server is stopping.'}});
-          }
-          return json(res, 201, {sessionId, answer: result.answer, source, startedAt, device, maxSeconds: 60});
+          const result = await liveSessions.open({deviceId: device.id, offer: input.offer});
+          if (res.destroyed) { await endLiveSession(result.sessionId, 'request_closed'); return; }
+          return json(res, 201, {...result, source, device});
         }
         if (/^\/api\/ring\/live-session\/[a-f0-9-]+\/viewed$/.test(path)) {
           const sessionId = path.split('/').at(-2);
@@ -168,7 +140,9 @@ export function createCareServer({env = process.env, initialState} = {}) {
             return json(res, 404, {error: {code: 'ring_session_ended', message: 'Open a fresh live view to continue.'}});
           const record = liveLog.find(entry => entry.sessionId === sessionId);
           const playbackStartedAt = record?.playbackStartedAt || new Date().toISOString();
-          recordLiveView(sessionId, {playbackStartedAt, playbackReportSource: 'browser-playing-event'});
+          const sources = new Set(['video-frame-callback', 'loadeddata', 'playing', 'ready-state']);
+          const playbackReportSource = sources.has(input.source) ? input.source : 'browser-playing-event';
+          recordLiveView(sessionId, {playbackStartedAt, playbackReportSource});
           return json(res, 200, {sessionId, playbackStartedAt});
         }
         if (path === '/api/commands') {
@@ -211,7 +185,7 @@ export function createCareServer({env = process.env, initialState} = {}) {
         : code === 'ENOENT' ? 'File unavailable.' : 'The operation failed. Retry after reviewing the server setup.';
       if (path === '/api/ring/sync') syncInfo = {...syncInfo, error: {code, message}};
       const status = code === 'conflict' || code === 'closed' || code === 'mode' ? 409
-        : code === 'origin' ? 403 : code === 'ENOENT' ? 404 : error.name === 'RingError' ? 502
+        : code === 'origin' ? 403 : code === 'ENOENT' ? 404 : error.name === 'RingError' ? error.status || 502
         : safeCodes.has(code) || error instanceof SyntaxError ? 400 : 500;
       json(res, status, {error: {code, message}, state});
     }
@@ -220,7 +194,7 @@ export function createCareServer({env = process.env, initialState} = {}) {
   server.close = (callback) => {
     closing = true;
     for (const client of clients) client.end();
-    const cleanup = Promise.all([...liveSessions.keys()].map(sessionId => endLiveSession(sessionId, 'server_shutdown').catch(() => {})));
+    const cleanup = liveSessions.closeAll('server_shutdown');
     return originalClose(error => {cleanup.then(() => callback?.(error));});
   };
   return server;

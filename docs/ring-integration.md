@@ -55,11 +55,13 @@ A human classification remains a Ring activity record. Arrival and completion re
 
 ## Live viewing through WHEP
 
+[Ring View Bridge 0.1.1](https://github.com/blucca/ring-view-bridge) supplies the installed Node transport, session pool, and vendored browser receiver. The application retains the dialog, device policy, origin checks, and visit-specific logging.
+
 The browser adds receive-only audio and video transceivers, gathers ICE candidates using the official sample's STUN servers, and sends its SDP offer to the local backend:
 
-- `POST /api/ring/live-session` with `{offer}` → `{sessionId, answer, source, startedAt, device, maxSeconds: 60}`.
+- `POST /api/ring/live-session` with `{offer}` → `{sessionId, answer, source, startedAt, expiresAt, device, maxSeconds: 60}`.
 - The backend calls `POST /v1/devices/{device_id}/media/streaming/whep/sessions` with `application/sdp` and its private bearer token. The official HTTP 201 answer is delivered to the browser; the upstream Location stays server-side.
-- First playback sends `POST /api/ring/live-session/{sessionId}/viewed`. The log records `playbackStartedAt` with `playbackReportSource: browser-playing-event`.
+- The first decoded frame sends `POST /api/ring/live-session/{sessionId}/viewed` with `{source}`. The log records `playbackStartedAt` and the observation source, normally `video-frame-callback`. Fallback sources are `loadeddata`, `playing`, or `ready-state`, after video dimensions and readiness are checked.
 - Closing the dialog sends `DELETE /api/ring/live-session/{sessionId}`. The backend deletes the official WHEP session. Each view expires after sixty seconds; the server limits active/in-flight sessions to two and also cleans up on shutdown.
 
 The dialog survives visit-card SSE updates. Playback metadata, motion/doorbell history, and person-confirmed arrival/completion use separate records. `ring.liveView` exposes the latest session's timestamps and active count. When a state file is configured, up to twenty session-metadata records persist alongside it in `<stateFile>.live-view.json`.

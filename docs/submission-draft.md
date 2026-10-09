@@ -26,7 +26,7 @@ Lee records an arrival, then completes the visit with a short outcome. A fresh p
 
 ## How we built it
 
-Care Handoff uses native Node.js, standard HTTP, browser JavaScript, and WebRTC. Its runtime has zero package dependencies. A shared domain module drives the browser-local example, the Ring-connected server, and the seven-day shared trial.
+Care Handoff uses native Node.js, standard HTTP, browser JavaScript, and WebRTC. Its live-view lifecycle uses the independently released, zero-dependency Ring View Bridge package. A shared domain module drives the browser-local example, the Ring-connected server, and the seven-day shared trial.
 
 Human commands carry the current revision. A stale action receives the latest state for review. Ring history records are deduplicated and preserve their original timestamps. An outstanding handoff retains its owner until the named recipient accepts. Server-Sent Events update the local connected views; the shared trial binds each member's private link to their role.
 
