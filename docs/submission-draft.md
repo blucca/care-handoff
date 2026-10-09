@@ -32,6 +32,10 @@ Human commands carry the current revision. A stale action receives the latest st
 
 The Ring token stays on the backend. Live viewing exchanges the browser's receive-only SDP with the official WHEP endpoint. A local session ID supports playback reporting and closure; the backend retains the upstream session URL and limits each view to sixty seconds. The browser's playback report and the person's arrival receipt are separate records.
 
+## Additional open-source contribution
+
+[Ring View Bridge](https://github.com/blucca/ring-view-bridge) is our independent MIT project for other Ring developers. It packages the server-side WHEP exchange, bounded session pool, and receive-only browser receiver behind framework-free APIs. A standalone Node + HTML example and Care Handoff both use the package. Care Handoff installs [Release 0.1.1](https://github.com/blucca/ring-view-bridge/releases/tag/v0.1.1); its [recorded consumer run](https://github.com/blucca/care-handoff/blob/main/docs/ring-view-bridge.md) includes HTTP 201 creation, actual 1280 × 720 frames, and HTTP 200 cleanup.
+
 ## The hardest design decision
 
 The product needs to answer two questions at a glance: **Who owns the next update? What has actually been recorded?**
