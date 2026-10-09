@@ -531,3 +531,20 @@ summary::-webkit-details-marker { display: none; }
 .activity-item > div > span, .activity-item > div > p, .form-help, .signing-note,
 .late-label, .owner-panel small, .closed-state > p { color: #536258; }
 @media (max-width: 560px) { .activity-tools { gap: 7px; } .activity-tools .revision-label { display: none; } .summary-dialog textarea { font-size: 14px; } }
+
+/* A direct Ring view lives outside the frequently refreshed visit card. */
+.live-view-entry { margin: 14px 0 4px; }
+.live-view-entry .button { width: 100%; font-size: 12px; }
+.ring-live-dialog { width: min(900px, calc(100% - 28px)); max-height: calc(100dvh - 28px); padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); color: var(--ink); overflow: auto; box-shadow: 0 24px 90px #183f3a40; }
+.ring-live-dialog::backdrop { background: #102e29b8; }
+.ring-live-dialog h2 { font-family: Georgia, serif; font-size: 28px; font-weight: 400; padding-top: 5px; }
+.ring-live-source { color: var(--muted); font-size: 13px; margin: 5px 0 17px; }
+.ring-live-screen { background: #102b27; border-radius: 12px; overflow: hidden; }
+.ring-live-screen video { display: block; width: 100%; aspect-ratio: 16/9; object-fit: contain; }
+.ring-live-status { color: #fffefa; background: #183f3a; padding: 11px 16px; font-size: 13px; }
+.ring-live-status.is-connected::before { content: '●'; color: #b4d9a1; margin-right: 9px; }
+.ring-live-guidance { color: var(--muted); font-size: 13px; margin: 17px 0; }
+.ring-live-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
+@media (max-width: 560px) { .ring-live-dialog { padding: 18px; } .ring-live-actions .button { width: 100%; } }
+
+.demo-watch-link { display: block; margin-top: 7px; font-size: 12px; }

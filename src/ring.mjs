@@ -190,6 +190,70 @@ export class RingClient {
     return payload;
   }
 
+  #sessionUrl(deviceId, location) {
+    let url;
+    try { url = new URL(location, this.#baseUrl); } catch { throw invalidResponse(); }
+    const prefix = `/v1/devices/${encodeURIComponent(requireId(deviceId))}/media/streaming/whep/sessions/`;
+    if (url.origin !== this.#baseUrl.origin || url.username || url.password || url.hash
+      || !url.pathname.startsWith(prefix) || !/^[A-Za-z0-9_-]+$/.test(url.pathname.slice(prefix.length))) {
+      throw invalidResponse();
+    }
+    return url;
+  }
+
+  async #mediaRequest(url, method, offer) {
+    const signal = AbortSignal.timeout(this.#timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {Authorization: `Bearer ${this.#accessToken}`,
+          ...(method === 'POST' ? {'Content-Type': 'application/sdp', Accept: 'application/sdp'} : {})},
+        ...(offer === undefined ? {} : {body: offer}),
+        signal,
+        redirect: 'error',
+      });
+      if (!response.ok && !(method === 'DELETE' && [404, 410].includes(response.status))) {
+        await response.body?.cancel();
+        const status = response.status;
+        if (status === 401 || status === 403) {
+          throw new RingError('ring_auth', `Ring access failed (HTTP ${status}). Generate a fresh token and check device access.`, status);
+        }
+        throw new RingError('ring_stream_http', `Ring live view failed (HTTP ${status}). Check device access and retry.`, status);
+      }
+      if (method === 'DELETE') {
+        await response.body?.cancel();
+        return {closed: true};
+      }
+      if (response.status !== 201 || !response.headers.get('content-type')?.startsWith('application/sdp')) {
+        await response.body?.cancel();
+        throw invalidResponse();
+      }
+      const answer = await response.text();
+      if (!answer.startsWith('v=0') || answer.length > 96 * 1024) throw invalidResponse();
+      return {answer, location: response.headers.get('location')};
+    } catch (error) {
+      if (error instanceof RingError) throw error;
+      if (signal.aborted) throw new RingError('ring_timeout', 'The Ring live-view request timed out. Retry the stream.', 504);
+      throw new RingError('ring_network', 'The Ring live-view connection failed. Check backend connectivity and retry.', 502);
+    }
+  }
+
+  /** Exchange a browser-generated receive-only offer. Keep sessionUrl on the backend. */
+  async startLiveSession(deviceId, offer) {
+    requireId(deviceId);
+    if (typeof offer !== 'string' || !offer.startsWith('v=0') || !offer.includes('m=video ')
+      || offer.length > 96 * 1024) {
+      throw new RingError('ring_invalid_offer', 'Provide a browser-generated video SDP offer within 96 KiB.', 400);
+    }
+    const url = new URL(`/v1/devices/${encodeURIComponent(deviceId)}/media/streaming/whep/sessions`, this.#baseUrl);
+    const result = await this.#mediaRequest(url, 'POST', offer);
+    return {answer: result.answer, sessionUrl: this.#sessionUrl(deviceId, result.location).toString()};
+  }
+
+  async closeLiveSession(deviceId, sessionUrl) {
+    return this.#mediaRequest(this.#sessionUrl(deviceId, sessionUrl), 'DELETE');
+  }
+
   #nextPageKey(payload, deviceId) {
     const link = typeof payload.links?.next === 'string' ? payload.links.next : payload.links?.next?.href;
     if (!link) return null;

@@ -2,7 +2,7 @@
 
 **When a care visit changes, one person owns the next step.**
 
-[Try it with your circle](https://blucca.github.io/care-handoff/try/) · [Interactive example](https://blucca.github.io/care-handoff/) · [Ring integration](docs/ring-integration.md)
+[Try it with your circle](https://blucca.github.io/care-handoff/try/) · [Interactive example](https://blucca.github.io/care-handoff/) · [Watch 2:21 demo](https://blucca.github.io/care-handoff/demo/) · [Ring integration](docs/ring-integration.md)
 
 Care Handoff connects a scheduled household visit, Ring door activity, an accepted handoff, and a human completion receipt. The original owner keeps responsibility while a replacement decides. Acceptance transfers it. A named person records the outcome.
 
@@ -47,7 +47,7 @@ npm start
 
 Open **http://127.0.0.1:4319/**. This serves the shared local-server example. Each browser tab can act as a different example participant. `/index.html` opens the browser-local version, which uses localStorage and cross-tab synchronization.
 
-The backend is a **local trusted-workspace prototype**. Its role selector is for demonstration participants. Household account provisioning and production member authentication belong to the hosted-pilot phase.
+The backend is a **local trusted-workspace prototype**. Its role selector is for demonstration participants. The hosted seven-day trial uses private member-bound links for household coordination.
 
 To preserve server state across restarts, point `CARE_HANDOFF_STATE_FILE` at a local state file:
 
@@ -61,7 +61,9 @@ CARE_HANDOFF_STATE_FILE=/your/workspace/temp/care-handoff/state.json npm start
 2. Generate a short-lived token and choose a simulated device.
 3. Store the token in a private local file; give the backend its file path through `RING_TOKEN_FILE`.
 4. Set `RING_DEVICE_ID` when the token exposes several devices, then start the backend.
-5. Open the app’s connected mode and select **Sync Ring** to discover the device, read its status, and ingest history.
+5. Select an official **Package**, **Vehicle**, or **Motion** preview in the Playground.
+6. Open the app and select **Sync Ring events**, then **Open live doorway view**. The live stream plays inside the visit card’s dialog.
+7. Close the live view, then record an arrival or other confirmed update through the named participant’s form.
 
 ```sh
 RING_TOKEN_FILE=/your/private/ring-token.txt \
@@ -72,13 +74,14 @@ npm start
 
 `RING_ACCESS_TOKEN` is an alternative environment variable. The token stays on the backend. Playground tokens last approximately 30 minutes; replacing the file supports a fresh session. `RING_SOURCE=ring-api` labels a separately configured Ring API connection. [Detailed API mapping, token lifecycle, and webhook setup](docs/ring-integration.md).
 
-**Current evidence:** the published example exercises the complete coordination workflow. The Ring adapter is tested against local fixtures shaped from the official API contract. A recorded official Playground session is the next integration milestone.
+**Recorded official integration:** device discovery/status/history returned HTTP 200; WHEP session creation returned HTTP 201; the app played the official 1280 × 720 stream and closed its upstream session. The same server then carried Maya’s request through Lee’s acceptance, named completion, and fresh-page recovery. [Run details and API observations](docs/ring-run.md).
 
 ## Architecture
 
 ```text
 web/domain.mjs   Pure visit state machine, versioned commands, device-event ingestion
 web/app.mjs      Browser-local and local-server UI, roles, refresh and cross-tab recovery
+web/ring-live.mjs  Receive-only WebRTC view, playback report, and session cleanup
 web/trial.mjs    Personal-link trial setup, invitations, and optional feedback
 web/try/        Stable public entry and current preview-service routing
 src/server.mjs   Local HTTP service, optional state file, server-sent updates

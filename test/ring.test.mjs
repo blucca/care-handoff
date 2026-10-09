@@ -75,3 +75,39 @@ test('auth and timeout errors expose a safe explanation', async () => {
     await new Promise(resolve => server.close(resolve));
   }
 });
+
+test('WHEP exchanges receive-only SDP and closes the private session URL', async () => {
+  const calls = [];
+  let externalLocation = false;
+  const offer = 'v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=recvonly\r\n';
+  const answer = 'v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=sendonly\r\n';
+  const server = createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    calls.push({method: req.method, url: req.url, body: Buffer.concat(chunks).toString()});
+    assert.equal(req.headers.authorization, 'Bearer contract-token');
+    if (req.method === 'DELETE') {res.writeHead(204); return res.end();}
+    assert.equal(req.headers['content-type'], 'application/sdp');
+    res.writeHead(201, {'Content-Type': 'application/sdp', Location: externalLocation
+      ? 'https://outside.example/session-1'
+      : '/v1/devices/camera-1/media/streaming/whep/sessions/session-1?private=upstream'});
+    res.end(answer);
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const client = new RingClient({accessToken: 'contract-token', baseUrl: `http://127.0.0.1:${server.address().port}`});
+    const result = await client.startLiveSession('camera-1', offer);
+    assert.equal(result.answer, answer);
+    assert.equal(calls[0].body, offer);
+    assert.equal(calls[0].url, '/v1/devices/camera-1/media/streaming/whep/sessions');
+    assert.deepEqual(await client.closeLiveSession('camera-1', result.sessionUrl), {closed: true});
+    assert.equal(calls[1].method, 'DELETE');
+    assert.equal(calls[1].url, '/v1/devices/camera-1/media/streaming/whep/sessions/session-1?private=upstream');
+    await assert.rejects(client.closeLiveSession('camera-2', result.sessionUrl), error => error.code === 'ring_invalid_response');
+    externalLocation = true;
+    await assert.rejects(client.startLiveSession('camera-1', offer), error => error.code === 'ring_invalid_response');
+  } finally {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  }
+});

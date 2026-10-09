@@ -1,4 +1,5 @@
 import {createServer} from 'node:http';
+import {randomUUID} from 'node:crypto';
 import {readFileSync, writeFileSync, renameSync, mkdirSync, existsSync} from 'node:fs';
 import {dirname, resolve, extname, sep} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -22,11 +23,16 @@ export function createCareServer({env = process.env, initialState} = {}) {
     : createDemoState(configured() ? {now: new Date().toISOString()} : {}));
   if (state.schema !== 'care-handoff/1') throw new Error('Choose a care-handoff/1 state file.');
   const clients = new Set();
+  const liveSessions = new Map();
+  const liveLogFile = stateFile ? `${stateFile}.live-view.json` : null;
+  let liveLog = liveLogFile && existsSync(liveLogFile) ? JSON.parse(readFileSync(liveLogFile, 'utf8')) : [];
+  let closing = false;
   let syncInfo = {lastSync: null, error: null};
   const envelope = () => {
     const visibleState = state.mode === 'example' ? state : {...state, clock: new Date().toISOString()};
     return {state: visibleState, view: deriveView(visibleState), ring: {
       mode: configured() ? source : 'example', configured: configured(), ...syncInfo,
+      liveView: {activeSessions: liveSessions.size, lastSession: liveLog.at(-1) || null},
     }};
   };
   const broadcast = () => {
@@ -42,6 +48,37 @@ export function createCareServer({env = process.env, initialState} = {}) {
     state = next;
     broadcast();
     return envelope();
+  }
+  function recordLiveView(sessionId, changes) {
+    const existing = liveLog.find(record => record.sessionId === sessionId);
+    if (existing) Object.assign(existing, changes);
+    else liveLog.push({sessionId, ...changes});
+    liveLog = liveLog.slice(-20);
+    if (liveLogFile) {
+      mkdirSync(dirname(resolve(liveLogFile)), {recursive: true, mode: 0o700});
+      writeFileSync(`${liveLogFile}.tmp`, JSON.stringify(liveLog, null, 2), {mode: 0o600});
+      renameSync(`${liveLogFile}.tmp`, liveLogFile);
+    }
+    broadcast();
+  }
+  async function endLiveSession(sessionId, reason) {
+    const session = liveSessions.get(sessionId);
+    if (!session) return {closed: true, sessionId};
+    if (!session.sessionUrl && session.ready) {
+      await session.ready;
+      return endLiveSession(sessionId, reason);
+    }
+    liveSessions.delete(sessionId);
+    clearTimeout(session.timer);
+    try {
+      await session.client.closeLiveSession(session.deviceId, session.sessionUrl);
+      recordLiveView(sessionId, {endedAt: new Date().toISOString(), endReason: reason, closeStatus: 'closed'});
+      return {closed: true, sessionId};
+    } catch (error) {
+      recordLiveView(sessionId, {endedAt: new Date().toISOString(), endReason: reason, closeStatus: 'close_failed',
+        error: {code: error.code || 'ring_network', message: error.message}});
+      throw error;
+    }
   }
   function json(res, status, data) {
     res.writeHead(status, {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'});
@@ -90,10 +127,50 @@ export function createCareServer({env = process.env, initialState} = {}) {
         save(next);
         return json(res, 200, {received: events.length, revision: state.revision});
       }
+      if (req.method === 'DELETE' && /^\/api\/ring\/live-session\/[a-f0-9-]+$/.test(path)) {
+        checkLocalRequest(req);
+        return json(res, 200, await endLiveSession(path.split('/').at(-1), 'viewer_closed'));
+      }
       if (req.method === 'POST' && path.startsWith('/api/')) {
         checkLocalRequest(req);
         const raw = await body(req);
         const input = JSON.parse(raw.toString('utf8') || '{}');
+        if (path === '/api/ring/live-session') {
+          if (!configured()) return json(res, 422, {error: {code: 'token_required', message: 'Configure a server-side Ring Playground token to open live view.'}});
+          if (closing) return json(res, 503, {error: {code: 'closing', message: 'The local server is stopping.'}});
+          if (state.device.source !== source)
+            return json(res, 409, {error: {code: 'ring_sync_required', message: 'Sync Ring to select the connected device before opening live view.'}});
+          if (liveSessions.size >= 2)
+            return json(res, 429, {error: {code: 'ring_session_limit', message: 'Close an active view before opening another stream.'}});
+          const sessionId = randomUUID();
+          const client = new RingClient({accessToken: readToken()});
+          const device = {id: state.device.id, name: state.device.name};
+          // Reserve a slot while the upstream WHEP request is in flight.
+          const ready = client.startLiveSession(device.id, input.offer);
+          liveSessions.set(sessionId, {client, deviceId: device.id, sessionUrl: null, timer: null, ready});
+          let result;
+          try { result = await ready; }
+          catch (error) {liveSessions.delete(sessionId); throw error;}
+          const startedAt = new Date().toISOString();
+          const timer = setTimeout(() => endLiveSession(sessionId, 'duration_limit').catch(() => {}), 60_000);
+          timer.unref();
+          liveSessions.set(sessionId, {client, deviceId: device.id, sessionUrl: result.sessionUrl, timer});
+          recordLiveView(sessionId, {source, deviceId: device.id, startedAt, playbackStartedAt: null, endedAt: null});
+          if (closing) {
+            await endLiveSession(sessionId, 'server_shutdown');
+            return json(res, 503, {error: {code: 'closing', message: 'The local server is stopping.'}});
+          }
+          return json(res, 201, {sessionId, answer: result.answer, source, startedAt, device, maxSeconds: 60});
+        }
+        if (/^\/api\/ring\/live-session\/[a-f0-9-]+\/viewed$/.test(path)) {
+          const sessionId = path.split('/').at(-2);
+          if (!liveSessions.has(sessionId))
+            return json(res, 404, {error: {code: 'ring_session_ended', message: 'Open a fresh live view to continue.'}});
+          const record = liveLog.find(entry => entry.sessionId === sessionId);
+          const playbackStartedAt = record?.playbackStartedAt || new Date().toISOString();
+          recordLiveView(sessionId, {playbackStartedAt, playbackReportSource: 'browser-playing-event'});
+          return json(res, 200, {sessionId, playbackStartedAt});
+        }
         if (path === '/api/commands') {
           const now = state.mode === 'example' ? state.clock : new Date().toISOString();
           return json(res, 200, save(applyCommand(state, input, now)));
@@ -139,14 +216,22 @@ export function createCareServer({env = process.env, initialState} = {}) {
       json(res, status, {error: {code, message}, state});
     }
   });
-  server.on('close', () => {for (const client of clients) client.end();});
+  const originalClose = server.close.bind(server);
+  server.close = (callback) => {
+    closing = true;
+    for (const client of clients) client.end();
+    const cleanup = Promise.all([...liveSessions.keys()].map(sessionId => endLiveSession(sessionId, 'server_shutdown').catch(() => {})));
+    return originalClose(error => {cleanup.then(() => callback?.(error));});
+  };
   return server;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const host = process.env.HOST || '127.0.0.1';
   const port = Number(process.env.PORT || 4319);
-  createCareServer().listen(port, host, () => {
+  const server = createCareServer();
+  server.listen(port, host, () => {
     console.log(`Care Handoff listening at http://${host}:${port}/ — local trusted workspace`);
   });
+  for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => server.close(() => process.exit(0)));
 }

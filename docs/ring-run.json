@@ -1,0 +1,73 @@
+{
+  "recorded_at": "2026-10-09T09:53:01Z",
+  "integration": "Official Ring Playground API, called by the Care Handoff Node backend",
+  "household": "Fictional demonstration participants: Maya, Lee, Pat, June",
+  "official_requests": [
+    {
+      "method": "GET",
+      "path": "/v1/devices",
+      "status": 200,
+      "devices": 1
+    },
+    {
+      "method": "GET",
+      "path": "/v1/devices/{device_id}/status",
+      "status": 200,
+      "device_status": "online"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/history/devices/{device_id}/events?event_types=motion,ding",
+      "status": 200,
+      "records": 2,
+      "event_types": [
+        "on_demand"
+      ],
+      "normalized_door_signals": 0
+    },
+    {
+      "method": "POST",
+      "path": "/v1/devices/{device_id}/media/streaming/whep/sessions",
+      "status": 201,
+      "response_type": "application/sdp"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/devices/{device_id}/media/streaming/whep/sessions/{upstream_session}",
+      "status": 200
+    }
+  ],
+  "playback": {
+    "width": 1280,
+    "height": 720,
+    "ready_state": 4,
+    "initial_media_time": 0.262,
+    "later_media_time": 7.674,
+    "started_at": "2026-10-09T09:53:19.034Z",
+    "closed_at": "2026-10-09T09:53:29.129Z",
+    "close_status": "closed",
+    "report_source": "browser-playing-event"
+  },
+  "human_receipts_after_playback": {
+    "arrival": null,
+    "completion": null
+  },
+  "following_user_actions": {
+    "pending_owner": "maya",
+    "accepted_owner": "lee",
+    "second_tab_owner": "lee",
+    "arrival_actor": "lee",
+    "completion_actor": "lee",
+    "final_revision": 9,
+    "fresh_page_status": "complete"
+  },
+  "recorded_product_page_errors": [],
+  "footage": {
+    "title": "Thief stealing our package",
+    "creator": "frollard",
+    "original": "https://www.youtube.com/watch?v=TfTFu8lGrwk",
+    "creator_url": "https://www.youtube.com/@frollard",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Excerpt supplied by Ring Playground, scaled inside the application recording."
+  }
+}

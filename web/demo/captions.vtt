@@ -1,0 +1,77 @@
+WEBVTT
+
+00:00:00.550 --> 00:00:03.755
+A doorbell connects you to the doorway.
+
+00:00:03.755 --> 00:00:07.644
+When a care visit changes, who follows through?
+
+00:00:07.644 --> 00:00:11.533
+Care Handoff gives one person the next step.
+
+00:00:11.533 --> 00:00:18.477
+In this fictional household, Maya coordinates June’s visit, and Lee is the nearby backup.
+
+00:00:20.646 --> 00:00:24.198
+This is Amazon’s official Ring Playground.
+
+00:00:24.198 --> 00:00:31.448
+Care Handoff discovers the simulated device and reads its status and history through the Ring API.
+
+00:00:31.448 --> 00:00:37.990
+Maya can open a live view to check the doorway, then record her own confirmed update.
+
+00:00:40.166 --> 00:00:42.607
+Now a change of plan.
+
+00:00:42.607 --> 00:00:47.802
+In our example, Pat is delayed and the visit window has passed.
+
+00:00:47.802 --> 00:00:54.024
+Maya records the phone update and asks Lee to check in with June within twenty minutes.
+
+00:00:54.024 --> 00:00:58.746
+The request includes the action, the time, and the reason.
+
+00:01:00.910 --> 00:01:04.712
+The card still names Maya while Lee decides.
+
+00:01:04.712 --> 00:01:10.198
+Lee opens the same visit, sees the concrete plan, and accepts.
+
+00:01:10.198 --> 00:01:14.157
+Acceptance transfers responsibility to Lee.
+
+00:01:14.157 --> 00:01:19.921
+Both screens receive the new state, with one person owning the next update.
+
+00:01:22.086 --> 00:01:27.194
+Lee arrives, checks in with June, and records an arrival receipt.
+
+00:01:27.194 --> 00:01:31.305
+After lunch, Lee adds a short completion note.
+
+00:01:31.305 --> 00:01:38.680
+The screen now shows a clear ending: the accepted plan, the person who completed it, and what happened.
+
+00:01:40.838 --> 00:01:45.946
+Return later, and the accepted plan and named receipts are still there.
+
+00:01:45.946 --> 00:01:49.654
+Ring observations keep their device source.
+
+00:01:49.654 --> 00:01:53.765
+A household member’s confirmation carries their name.
+
+00:01:53.765 --> 00:01:58.779
+The shared record gives everyone the same clear account of what happened.
+
+00:02:00.934 --> 00:02:04.403
+The working application is open source.
+
+00:02:04.403 --> 00:02:12.209
+Try the fictional visit immediately, or create a free seven-day shared visit with a private link for each person.
+
+00:02:12.209 --> 00:02:18.236
+Care Handoff: one circle, one clear next step, a visit followed through.
+

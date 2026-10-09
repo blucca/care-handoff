@@ -1,6 +1,6 @@
 {
   "name": "care-handoff",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Clear ownership and completion receipts for scheduled care visits, with Ring device context.",

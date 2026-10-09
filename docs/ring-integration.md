@@ -7,8 +7,9 @@ Care Handoff uses the official [Ring Partner API](https://developer.amazon.com/d
 1. Open the [Ring Developer Playground](https://developer.amazon.com/ring/console/playground) and sign in to Amazon Developer.
 2. Select a simulated device and generate an access token. The Playground token lasts approximately 30 minutes.
 3. Set `RING_ACCESS_TOKEN` in the backend environment. Set the household’s device ID when the token exposes multiple devices.
-4. Run a live sync. The backend discovers devices, reads the selected device’s status, and fetches its event history.
-5. Generate a new Playground token when the live session expires and restart the backend with the updated environment.
+4. Select Package, Vehicle, or Motion in the Playground to choose the official preview footage.
+5. Run a live sync in Care Handoff. The backend discovers devices, reads the selected device’s status, and fetches its event history. Select **Open live doorway view** to play the official stream.
+6. Generate a new Playground token when the live session expires and restart the backend with the updated environment.
 
 The [May 28, 2026 release notes](https://developer.amazon.com/docs/ring/release-notes.html#developers-playground) document synthetic Package, Vehicle, and Motion sessions plus the API explorer. Playground setup is available before app creation, account linking, and a paid Ring subscription. The canonical [Ring API Hello World](https://github.com/AmazonAppDev/ring-api-helloworld) demonstrates external applications using the Playground token.
 
@@ -51,6 +52,19 @@ The sync selects the sole discovered device automatically. Multiple devices requ
 Each result has `{id,type,deviceId,occurredAt,source}` and optional `subType`. `attributes.sub_type` is preserved, including future classification values. Composite history types such as `motion.human` also preserve their classification. Timestamps come from epoch-millisecond `attributes.start` / `attributes.timestamp` or an explicit-offset ISO value. Unsupported event categories are skipped; incomplete supported events fail the sync with `ring_invalid_response`. A selected device filters events from other devices. Source/event IDs deduplicate records, and output is ordered by event time.
 
 A human classification remains a Ring activity record. Arrival and completion require the explicit commands in the domain contract. Device status queries update the status snapshot; they produce zero synthetic history events.
+
+## Live viewing through WHEP
+
+The browser adds receive-only audio and video transceivers, gathers ICE candidates using the official sample's STUN servers, and sends its SDP offer to the local backend:
+
+- `POST /api/ring/live-session` with `{offer}` → `{sessionId, answer, source, startedAt, device, maxSeconds: 60}`.
+- The backend calls `POST /v1/devices/{device_id}/media/streaming/whep/sessions` with `application/sdp` and its private bearer token. The official HTTP 201 answer is delivered to the browser; the upstream Location stays server-side.
+- First playback sends `POST /api/ring/live-session/{sessionId}/viewed`. The log records `playbackStartedAt` with `playbackReportSource: browser-playing-event`.
+- Closing the dialog sends `DELETE /api/ring/live-session/{sessionId}`. The backend deletes the official WHEP session. Each view expires after sixty seconds; the server limits active/in-flight sessions to two and also cleans up on shutdown.
+
+The dialog survives visit-card SSE updates. Playback metadata, motion/doorbell history, and person-confirmed arrival/completion use separate records. `ring.liveView` exposes the latest session's timestamps and active count. When a state file is configured, up to twenty session-metadata records persist alongside it in `<stateFile>.live-view.json`.
+
+[The recorded official run](ring-run.md) documents 1280 × 720 playback and the following named handoff. Its history query returned two `on_demand` entries after official previews; the supported motion/doorbell list remained empty. Those categories follow separate application paths.
 
 ## Webhooks
 

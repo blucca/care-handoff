@@ -1,6 +1,6 @@
-# Care Handoff — Devpost story draft
+# Care Handoff — Ring candidate story
 
-**Status:** development in progress, 9 October 2026. The story below describes the candidate experience. June's home and all named participants are fictional demonstration characters. Final submission assets will document the delivered implementation and its observed behavior.
+**Working candidate · 9 October 2026.** [Interactive example](https://blucca.github.io/care-handoff/) · [Shared trial](https://blucca.github.io/care-handoff/try/) · [Watch the demo](https://blucca.github.io/care-handoff/demo/) · [Source](https://github.com/blucca/care-handoff)
 
 ## Tagline
 
@@ -8,60 +8,57 @@ When a care visit changes, one person owns the next step.
 
 ## Inspiration
 
-The difficult moment in coordinating home visits often arrives after a notification: somebody has to follow up, somebody has to accept that responsibility, and everybody else needs to know what happened.
+A doorbell connects a family to the doorway. Coordinating a changed visit takes another kind of connection: a person who accepts the next step and follows through.
 
-A public family-care discussion described a familiar breakdown. Visiting carers and a remote family member were trying to piece together a change of plans that another family member already knew about. That small coordination gap inspired Care Handoff: give each visit a clear next person, an agreed action, and a completion receipt.
+A public family-care discussion described carers and a remote relative piecing together a change of plans that another family member already knew about. Care Handoff makes that small, important responsibility visible. A request carries an action and a time; acceptance moves ownership; a named receipt closes the visit.
 
-## The story
+## What it does
 
-Pat is expected at June's home between noon and 12:30. Maya coordinates the visit from a distance; Lee is the nearby backup.
+Maya coordinates a visit to June. Pat, the planned visitor, is delayed. Lee is the nearby backup. These are fictional demonstration characters.
 
-At 12:05, the doorbell reports activity. The visit card gains a Ring event with its source and timestamp. Arrival confirmation remains a deliberate action for an authorized participant.
+Maya opens the visit card and checks the Ring connection. The working backend discovers the official Playground device, reads its status and event history, and opens an actual Ring WHEP live stream inside the application. Device observations keep their source; a person records the visit confirmation.
 
-At 12:35, the visit still awaits an update. Maya opens the card, records what she has tried, and asks Lee to take over with a concrete plan. Maya remains the owner while the request is pending. When Lee accepts, the card shows Lee as the person responsible for the next step.
+Maya records the phone update, then asks Lee to check in within twenty minutes and send an update. The card still names Maya while Lee decides. Lee opens the same live visit in another tab, reads the concrete plan, and accepts. Both views now show Lee as the next-update owner.
 
-Lee follows through, confirms arrival, and closes the visit with a short note. Later, the family can open the same card and see the original plan, the doorway activity, the accepted handoff, and the attributed completion receipt.
-
-The outcome is simple: a disrupted visit reaches someone who accepts responsibility and records what happened.
-
-## What makes the product useful
-
-Ring provides the doorway signal. Care Handoff connects that signal to a small, explicit household workflow:
+Lee records an arrival, then completes the visit with a short outcome. A fresh page restores the accepted plan and named receipts. The family has a shared account of what happened.
 
 **Expected visit → update due → requested handoff → accepted owner → confirmed outcome.**
 
-The screen keeps device activity and human receipts in separate evidence columns. Each statement carries its source. A pending handoff retains the current owner; acceptance transfers responsibility. A completion note closes the loop.
+## How we built it
 
-The category already includes arrival notifications, family summaries, and scheduling tools. Our focus is the visible chain of responsibility for one visit, particularly when plans change.
+Care Handoff uses native Node.js, standard HTTP, browser JavaScript, and WebRTC. Its runtime has zero package dependencies. A shared domain module drives the browser-local example, the Ring-connected server, and the seven-day shared trial.
 
-## How we are building it
+Human commands carry the current revision. A stale action receives the latest state for review. Ring history records are deduplicated and preserve their original timestamps. An outstanding handoff retains its owner until the named recipient accepts. Server-Sent Events update the local connected views; the shared trial binds each member's private link to their role.
 
-The implementation target is a native Node.js service and a lightweight JavaScript web interface. A shared domain module drives both the browser-local example and the API-backed experience, with versioned commands, event deduplication, and an audit trail.
+The Ring token stays on the backend. Live viewing exchanges the browser's receive-only SDP with the official WHEP endpoint. A local session ID supports playback reporting and closure; the backend retains the upstream session URL and limits each view to sixty seconds. The browser's playback report and the person's arrival receipt are separate records.
 
-The static example is designed for immediate exploration in a browser. The Ring-connected mode is designed around a local backend that keeps the access token server-side, synchronizes official API events, and streams state updates to the interface. Example data and Ring Playground data carry distinct source labels.
+## The hardest design decision
 
-Care Handoff is being developed by an autonomous AI coding agent operating through the blucca project account; the account holder handles platform identity and account verification.
+The product needs to answer two questions at a glance: **Who owns the next update? What has actually been recorded?**
 
-## The central design challenge
+We made ownership a large, persistent part of the visit card. We gave device activity and human receipts separate evidence areas. The initial Playground history was empty. After opening official previews, the recorded sync returned two `on_demand` history entries; the motion/doorbell signal list stayed empty. That behavior shaped the delivered integration: a real live-view path with its own playback record, alongside the motion/doorbell history adapter and explicit person-confirmed updates.
 
-A helpful coordination tool needs precise ownership and readable evidence. We are concentrating on three moments: keeping the owner visible during a pending handoff, handling a late update against the current visit revision, and preserving the distinction between a doorway event and a participant's confirmation.
+## What we completed
 
-The interface should make all three easy to understand on a phone, especially during a busy day.
+- An actual official Ring Playground → backend → browser live-stream run, recorded inside Care Handoff at 1280 × 720.
+- The complete requested/accepted handoff and named arrival/completion flow on that same server.
+- Updates across two browser tabs and fresh-page recovery of the finished visit.
+- An immediately usable browser example plus a hosted trial where a household creates its own visit and distributes private role links.
+- Focused domain, HTTP, stream-session, and shared-trial checks; complete open-source setup instructions.
 
-## What comes next
+These demonstrations use fictional people and official simulated footage. Independent household use and willingness to pay are the next commercial signals. The current hypothesis is **$9 per household per month**; the shared trial is free.
 
-Complete the guided flow and a recorded Ring Playground run, then ask family coordinators to try one realistic visit change. The initial commercial hypothesis is **$9 per household per month**. Adoption will be evaluated through completed handoffs, concrete feedback, and paid household pilots.
+## Try it
 
-## Candidate submission assets
+1. [Explore the example](https://blucca.github.io/care-handoff/) in a browser.
+2. [Watch the recorded official integration and handoff](https://blucca.github.io/care-handoff/demo/).
+3. [Create a shared visit](https://blucca.github.io/care-handoff/try/) and send the member links to your circle. This hosted trial records people's coordination updates.
+4. For a connected Ring run, follow [the local setup](ring-integration.md) with your own active Playground token. [The recorded run](ring-run.md) documents the observed API and application results.
 
-- Working project and source URLs.
-- A short narrated recording of the fictional visit above.
-- A separately identified official Ring Playground run and its event receipts.
-- A concise explanation of the source labels, role controls, and accepted-handoff behavior.
+Care Handoff was developed by an autonomous AI coding agent through the blucca project account. The account holder handles platform identity and account verification.
 
-## Research references
+## Sources and media
 
-- [Public coordination discussion — Alzheimer's Society forum](https://forum.alzheimers.org.uk/threads/access-to-ring-doorbell-and-hive-heating-controls.133750/).
-- [Ring Smart Alerts](https://ring.com/support/articles/9qnpt/setting-up-smart-alerts).
-- [Routines — Ring Appstore](https://ring.com/appstore/routines).
-- [Beside Care — product FAQ](https://www.besidecare.com/faq/).
+- [Family coordination discussion — Alzheimer's Society forum](https://forum.alzheimers.org.uk/threads/access-to-ring-doorbell-and-hive-heating-controls.133750/).
+- [Ring Partner API](https://developer.amazon.com/docs/ring/api-documentation.html), [Playground](https://developer.amazon.com/ring/console/playground), and [official Hello World example](https://github.com/AmazonAppDev/ring-api-helloworld).
+- Official Playground Package footage: [“Thief stealing our package”](https://www.youtube.com/watch?v=TfTFu8lGrwk) by [frollard](https://www.youtube.com/@frollard), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The demo includes an excerpt as streamed by Ring, scaled inside the application recording. English narration is synthesized; captions and a transcript accompany the film.
