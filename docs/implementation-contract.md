@@ -2,6 +2,8 @@
 
 A narrow household coordination tool: a scheduled visit, Ring door activity, a named owner for the next update, an accepted handoff, and an explicit completion receipt. Ring events and human confirmations keep distinct records. Public demo households and people are fictional.
 
+The [shared trial](shared-trial.md) also accepts user-created visits through `createVisitState(input, {now, householdId, visitId})`. Its `mode` is `trial`, with member IDs `coordinator`, `visitor`, and `backup`; the initial device source and status are `unconnected`. The server binds each private member credential to its actor. Trial API and storage are isolated from the local trusted-workspace server below.
+
 ## Shared domain interface
 `web/domain.mjs` exports `createDemoState({now} = {})`, `applyCommand(state, command, now = state.clock)`, `ingestRingEvents(state, events, {now, device} = {})`, `runDemoAction(state, action)`, and `deriveView(state, now = state.clock)`. Pure functions return a fresh state; `DomainError` has `code` and `message`. A successful write increments `revision`.
 

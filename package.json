@@ -1,13 +1,16 @@
 {
   "name": "care-handoff",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Clear ownership and completion receipts for scheduled care visits, with Ring device context.",
   "scripts": {
     "start": "node src/server.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "trial": "node src/trial-server.mjs"
   },
-  "engines": {"node": ">=22"},
+  "engines": {
+    "node": ">=22"
+  },
   "license": "MIT"
 }

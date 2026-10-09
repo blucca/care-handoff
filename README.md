@@ -2,9 +2,23 @@
 
 **When a care visit changes, one person owns the next step.**
 
-[Open the interactive example](https://blucca.github.io/care-handoff/) · [Product brief](docs/product-brief.md) · [Ring integration](docs/ring-integration.md)
+[Try it with your circle](https://blucca.github.io/care-handoff/try/) · [Interactive example](https://blucca.github.io/care-handoff/) · [Ring integration](docs/ring-integration.md)
 
 Care Handoff connects a scheduled household visit, Ring door activity, an accepted handoff, and a human completion receipt. The original owner keeps responsibility while a replacement decides. Acceptance transfers it. A named person records the outcome.
+
+## Plan your own shared visit
+
+The **free seven-day trial** creates a visit for a coordinator, a planned visitor, and a backup. Each person receives a private link bound to their role. Open the links on separate phones or browsers to use the same live visit.
+
+1. [Create a visit](https://blucca.github.io/care-handoff/try/) with first names and a general plan.
+2. Save your coordinator link. Send the other links directly to the named people.
+3. Request a handoff with a replacement plan; the backup accepts through their own link.
+4. Record arrival and a completion receipt. Reopen your link to see the shared outcome.
+5. Copy the summary and tell us whether this would help with your next visit.
+
+The hosted trial covers **person-confirmed coordination**. Ring API runs use the separate connected local setup below. Records and feedback expire after seven days; the original coordinator can erase the visit earlier. The future family-plan hypothesis is **$9/month**, with an optional interest question after trying the flow.
+
+[Shared-trial architecture, privacy, and local setup](docs/shared-trial.md).
 
 ## Try one disrupted visit
 
@@ -65,12 +79,17 @@ npm start
 ```text
 web/domain.mjs   Pure visit state machine, versioned commands, device-event ingestion
 web/app.mjs      Browser-local and local-server UI, roles, refresh and cross-tab recovery
+web/trial.mjs    Personal-link trial setup, invitations, and optional feedback
+web/try/        Stable public entry and current preview-service routing
 src/server.mjs   Local HTTP service, optional state file, server-sent updates
+src/trial-server.mjs  Isolated shared-trial service, member credentials, expiry, polling
 src/ring.mjs     Official Ring REST client, normalization, webhook HMAC verification
 test/           Focused domain and HTTP-contract checks
 ```
 
 The same domain functions drive both run modes. Incoming Ring events carry their original event time plus reception time. Every human mutation supplies the current revision; a stale action receives the latest visit for review. A handoff request leaves the owner in place until its named recipient accepts.
+
+The hosted trial reuses this state machine with user-created visits and server-bound member roles. Internal acceptance exercised creation, two isolated browser contexts, the accepted handoff, completion, a fresh-page return, link replacement, and erasure. External use and price-interest responses are tracked separately.
 
 ```sh
 npm test

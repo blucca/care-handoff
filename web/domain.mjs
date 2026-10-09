@@ -47,6 +47,60 @@ export function createDemoState({now = DEMO_TIME} = {}) {
   };
 }
 
+export function createVisitState(input, {now = new Date().toISOString(),
+  householdId = 'trial-home', visitId = 'trial-visit'} = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input))
+    fail('invalid', 'Enter the visit details.');
+  const shortText = (value, label, max) => {
+    const text = clean(value, label, max);
+    if (/[\u0000-\u001f\u007f]/u.test(text)) fail('invalid', `${label} needs a single line of text.`);
+    return text;
+  };
+  const householdName = shortText(input.householdName, 'The household name', 100);
+  const title = shortText(input.title, 'The visit title', 160);
+  const coordinatorName = shortText(input.coordinatorName, 'The coordinator name', 80);
+  const visitorName = shortText(input.visitorName, 'The planned visitor name', 80);
+  const backupName = shortText(input.backupName, 'The backup name', 80);
+  if (new Set([coordinatorName, visitorName, backupName].map((name) => name.toLocaleLowerCase())).size !== 3)
+    fail('invalid', 'Give each person a distinct name. Add a role or nickname for people who share a name.');
+  const timeZone = shortText(input.timeZone, 'The time zone', 80);
+  try { new Intl.DateTimeFormat('en', {timeZone}).format(new Date(0)); }
+  catch { fail('invalid', 'Choose a valid time zone, such as Europe/London.'); }
+  const timestamp = (value, label) => {
+    const match = typeof value === 'string' && value.match(
+      /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|[+-]\d{2}:\d{2})$/u);
+    if (!match) fail('invalid', `${label} needs a date and time with its UTC offset.`);
+    const [, year, month, day, hour, minute, second, , offset] = match;
+    const days = new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate();
+    if (Number(month) < 1 || Number(month) > 12 || Number(day) < 1 || Number(day) > days
+      || Number(hour) > 23 || Number(minute) > 59 || Number(second || 0) > 59
+      || (offset !== 'Z' && (Number(offset.slice(1, 3)) > 23 || Number(offset.slice(4)) > 59)))
+      fail('invalid', `${label} needs a valid calendar date and time.`);
+    return iso(value);
+  };
+  const startsAt = timestamp(input.startsAt, 'The visit start');
+  const endsAt = timestamp(input.endsAt, 'The visit end');
+  if (Date.parse(endsAt) <= Date.parse(startsAt)) fail('invalid', 'The visit end must follow its start.');
+  const clock = iso(now);
+  return {
+    schema: 'care-handoff/1', revision: 0, mode: 'trial', clock,
+    household: {id: householdId, name: householdName, timeZone},
+    members: [
+      {id: 'coordinator', name: coordinatorName, role: 'Family coordinator'},
+      {id: 'visitor', name: visitorName, role: 'Planned visitor'},
+      {id: 'backup', name: backupName, role: 'Nearby backup'},
+    ],
+    device: {id: 'unconnected', name: 'Ring connection', status: 'unconnected',
+      lastCheckedAt: null, statusAt: null, source: 'unconnected'},
+    visit: {id: visitId, title, startsAt, endsAt, scheduledVisitor: 'visitor', owner: 'coordinator',
+      arrival: null, completion: null, pendingHandoff: null, backupPlan: null,
+      cancelled: null, notes: []},
+    signals: [],
+    audit: [{id: 'a-0-1', at: clock, actor: 'coordinator', type: 'visit_planned',
+      text: `${coordinatorName} planned a visit with ${visitorName} and owns the next update.`}],
+  };
+}
+
 export function applyCommand(state, command, now = state.clock) {
   if (!command || typeof command !== 'object') fail('invalid', 'Choose an action.');
   if (command.revision !== state.revision)
