@@ -3,11 +3,10 @@ import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, rmSync, writeFileSync, existsSync} from 'node:fs';
 import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
 import {createTrialServer} from '../src/trial-server.mjs';
 
 const SCRATCH = process.env.CARE_TEST_TEMP
-  || fileURLToPath(new URL('../../../temp/round89-care/', import.meta.url));
+  || join(process.env.INIT_CWD || process.cwd(), 'temp', 'care-handoff-tests');
 const VISIT = {householdName: 'Integration test household', title: 'Lunch visit',
   coordinatorName: 'Alex', visitorName: 'Sam', backupName: 'Jo',
   startsAt: '2026-10-09T12:00:00.000Z', endsAt: '2026-10-09T12:30:00.000Z', timeZone: 'Europe/London'};
