@@ -190,6 +190,18 @@ test('the public service keeps same-origin writes, real visit inputs, and a smal
   assert.equal(large.status, 413);
   for (const route of ['/api/state', '/api/ring/sync', '/api/stream', '/src/trial-server.mjs'])
     assert.equal((await fetch(`${f.base}${route}`)).status, 404);
+  // Follow the app's static module graph through the same public allowlist.
+  const modules = new Set(['/app.mjs']);
+  for (const path of modules) {
+    const response = await fetch(`${f.base}${path}`);
+    assert.equal(response.status, 200, `Public module ${path}`);
+    assert.match(response.headers.get('content-type'), /javascript/);
+    const source = await response.text();
+    for (const match of source.matchAll(/from\s+['"](\.[^'"]+)['"]/g)) {
+      modules.add(new URL(match[1], `${f.base}${path}`).pathname);
+    }
+  }
+  assert.equal(modules.has('/vendor/ring-view-bridge.mjs'), true);
   const landing = await fetch(f.base, {redirect: 'manual'});
   assert.equal(landing.status, 302);
   assert.equal(landing.headers.get('location'), '/?trial=1');
