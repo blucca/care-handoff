@@ -55,3 +55,23 @@
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 560px) { .trial-identity { margin-top: 20px; } .trial-dashboard .page-intro h1 { font-size: 33px; } .trial-dashboard .intro-description { font-size: 12px; } }
+
+.trial-dashboard .page-intro { padding-top: 30px; }
+.trial-dashboard .page-intro h1 { font-size: 38px; overflow-wrap: anywhere; }
+.trial-dashboard .trial-access { margin-top: 30px; }
+@media (max-width: 790px) {
+  .trial-dashboard .visit-sheet { display: contents; }
+  .trial-dashboard .visit-heading { grid-row: 1; padding-bottom: 0; }
+  .trial-dashboard .owner-panel { grid-row: 2; }
+  .trial-dashboard .desk-column { grid-row: 3; }
+  .trial-dashboard .evidence-grid { grid-row: 4; margin-top: 0; }
+  .trial-dashboard .evidence-note { grid-row: 5; margin-top: 0; }
+  .trial-dashboard .activity-section { grid-row: 6; }
+  .trial-dashboard .page-intro { display: block; padding: 22px 0 16px; }
+  .trial-dashboard .page-intro h1 { font-size: 28px; }
+  .trial-dashboard .intro-description { display: none; }
+  .trial-dashboard .trial-identity { margin-top: 16px; padding: 11px 15px; max-width: none; }
+  .trial-dashboard .trial-identity > div { margin-top: 6px; }
+  .trial-dashboard .trial-identity > p { margin-top: 4px; }
+  .trial-dashboard .trial-identity .text-button { margin-top: 3px; }
+}
