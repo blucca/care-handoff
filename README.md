@@ -2,7 +2,7 @@
 
 **When a care visit changes, one person owns the next step.**
 
-[Try it with your circle](https://blucca.github.io/care-handoff/try/) · [Interactive example](https://blucca.github.io/care-handoff/) · [Watch 2:21 demo](https://blucca.github.io/care-handoff/demo/) · [Ring integration](docs/ring-integration.md)
+[Try it with your circle](https://blucca.github.io/care-handoff/try/) · [Interactive example](https://blucca.github.io/care-handoff/) · [Watch 2:21 demo](https://blucca.github.io/care-handoff/demo/) · [YouTube](https://youtu.be/OzK99erVhy8) · [Ring integration](docs/ring-integration.md)
 
 Care Handoff connects a scheduled household visit, Ring door activity, an accepted handoff, and a human completion receipt. The original owner keeps responsibility while a replacement decides. Acceptance transfers it. A named person records the outcome.
 
