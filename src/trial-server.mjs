@@ -13,9 +13,9 @@ const MAX_ROOMS = 100;
 const MAX_BODY = 20 * 1024;
 const MAX_ROOM_BYTES = 256 * 1024;
 const MEMBER_IDS = ['coordinator', 'visitor', 'backup'];
-const STATIC_FILES = new Set(['index.html', 'app.mjs', 'domain.mjs', 'ring-live.mjs', 'vendor/ring-view-bridge.mjs', 'styles.css', 'trial.mjs', 'trial.css']);
+const STATIC_FILES = new Set(['index.html', 'app.mjs', 'domain.mjs', 'ring-live.mjs', 'vendor/ring-view-bridge.mjs', 'styles.css', 'trial.mjs', 'trial.css', 'nunito-sans-latin.woff2']);
 const MIME = {'.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8'};
+  '.css': 'text/css; charset=utf-8', '.woff2': 'font/woff2'};
 const ROUTES = new Set(['GET /api/trial/state', 'POST /api/trial/visits',
   'POST /api/trial/commands', 'POST /api/trial/invites', 'POST /api/trial/feedback',
   'DELETE /api/trial/visit']);

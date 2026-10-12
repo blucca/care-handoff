@@ -19,7 +19,7 @@ export async function openRingLiveView({deviceName = 'Doorway', source = 'ring-p
   dialog.innerHTML = `<div class="dialog-header"><div><span class="eyebrow">A live doorway view</span><h2 id="ring-live-title"></h2></div><button class="icon-button" type="button" data-live-close aria-label="Close live view">×</button></div>
     <p class="ring-live-source"></p><div class="ring-live-screen"><video autoplay playsinline muted controls aria-label="Ring live doorway video"></video><p class="ring-live-status" role="status">Connecting to Ring…</p></div>
     <p class="ring-live-guidance">Each view lasts up to one minute. Watch the doorway, then record a person-confirmed update on the visit card.</p>
-    <div class="ring-live-actions"><button class="button button-secondary" type="button" data-live-close>Close live view</button>${onArrival ? '<button class="button button-primary" type="button" data-live-arrival>Write an arrival receipt →</button>' : ''}</div>`;
+    <div class="ring-live-actions"><button class="button button-secondary" type="button" data-live-close>Close live view</button>${onArrival ? '<button class="button button-primary" type="button" data-live-arrival>Write an arrival receipt</button>' : ''}</div>`;
   dialog.querySelector('h2').textContent = deviceName;
   dialog.querySelector('.ring-live-source').textContent = source === 'ring-playground'
     ? 'Official Ring Playground · simulated footage'

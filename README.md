@@ -6,6 +6,8 @@
 
 Care Handoff connects a scheduled household visit, Ring door activity, an accepted handoff, and a human completion receipt. The original owner keeps responsibility while a replacement decides. Acceptance transfers it. A named person records the outcome.
 
+![The family visit book: Maya holds the next step while Lee reviews and accepts the plan.](web/preview.png)
+
 ## Plan your own shared visit
 
 The **free seven-day trial** creates a visit for a coordinator, a planned visitor, and a backup. Each person receives a private link bound to their role. Open the links on separate phones or browsers to use the same live visit.
@@ -32,8 +34,6 @@ June’s home, the visit, and the three participants are fictional example data.
 6. Refresh or open a second tab. The accepted handoff and completion receipt remain visible.
 
 Device activity and participant confirmations retain separate sources and timestamps. Late events preserve the existing human receipts. A declined handoff keeps the original owner. Camera status stays visible during each stage.
-
-![Maya remains responsible while Lee reviews the requested handoff; device activity and human receipts are shown separately.](web/preview.png)
 
 ## Run locally
 
